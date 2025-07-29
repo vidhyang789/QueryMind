@@ -52,11 +52,12 @@ sqlproject/
 
 ## ⚙️ How It Works
 
-1. User inputs a natural language question
-2. Backend extracts table + column names using JDBC
-3. App constructs a prompt with schema + user input
-4. OpenAI returns a SQL query
-5. SQL is returned as a response (can be executed in future)
+1. **User sends a natural language query** to `/api/nl-to-sql`
+2. The app **dynamically extracts schema** (tables and columns)
+3. The app **sends a prompt to OpenAI** with schema + question
+4. OpenAI returns an **SQL query**
+5. The app **executes this SQL on MySQL**
+6. The **result is returned as a JSON response**
 
 ---
 
@@ -94,6 +95,19 @@ CREATE TABLE orders (
     order_date DATE,
     FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
+
+INSERT INTO customers (name, email, created_at) VALUES
+('Alice', 'alice@example.com', '2023-01-10'),
+('Bob', 'bob@example.com', '2023-02-14');
+
+INSERT INTO orders (customer_id, amount, order_date) VALUES
+(1, 120.50, '2023-03-01'),
+(2, 95.00, '2023-03-05'),
+(1, 180.00, '2023-03-20');
+```
+
+---
+
 ```
 
 ### 3. Add OpenAI API Key
@@ -147,7 +161,12 @@ http://localhost:8080
 
 ```json
 {
-  "sql": "SELECT c.name, SUM(o.amount) AS total FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id ORDER BY total DESC LIMIT 5;"
+  "sql": "SELECT c.name FROM customers c JOIN orders o ON c.id = o.customer_id WHERE o.amount > 100",
+  "result": [
+    {
+      "name": "Alice"
+    }
+  ]
 }
 ```
 
@@ -208,7 +227,7 @@ You can also write controller tests to validate prompt formation and response pa
 
 ## 🙋‍♂️ Author
 
-Developed by [@yourusername](https://github.com/yourusername)
+Developed by [@vidhyang789](https://github.com/vidhyang789)
 
 ---
 
