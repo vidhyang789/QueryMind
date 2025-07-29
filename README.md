@@ -153,7 +153,7 @@ http://localhost:8080
 
 ```json
 {
-  "question": "Show me the top 5 customers by order amount"
+  "question": "Show me the customers with order amount greater than 100"
 }
 ```
 
