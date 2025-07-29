@@ -1,15 +1,17 @@
 # 🧠 AI-Powered Natural Language to SQL Converter
 
-This is a Spring Boot application that uses **OpenAI's GPT model** to convert user questions (in plain English) into valid SQL queries. It reads your database schema dynamically and generates queries intelligently using an LLM.
+This is a Spring Boot application that uses **OpenAI's GPT model** to convert natural language questions into valid SQL queries. It dynamically reads your database schema and crafts SQL intelligently using LLMs.
 
 ---
 
 ## 🔧 Features
 
-- ✅ Natural language to SQL conversion using OpenAI GPT.
-- ✅ Auto-detects table and column names from your database.
-- ✅ Clean and modular Spring Boot backend.
-- ✅ Easily extendable to execute the generated SQL queries.
+- ✅ Convert plain English questions to SQL queries
+- ✅ Uses OpenAI GPT models (GPT-3.5 or GPT-4)
+- ✅ Extracts table and column information from your MySQL DB
+- ✅ Clean RESTful architecture with Spring Boot
+- ✅ Modular service + controller layer
+- ✅ Extensible for query execution or UI integration
 
 ---
 
@@ -19,8 +21,8 @@ This is a Spring Boot application that uses **OpenAI's GPT model** to convert us
 |---------------|--------------|
 | Java          | 17           |
 | Spring Boot   | 3.4.2        |
-| Maven         | Yes          |
-| OpenAI API    | GPT-3.5/4    |
+| Maven         | ✔️           |
+| OpenAI API    | GPT-3.5 / GPT-4 |
 | Database      | MySQL        |
 | ORM           | Spring Data JPA |
 | REST Client   | RestTemplate |
@@ -29,38 +31,32 @@ This is a Spring Boot application that uses **OpenAI's GPT model** to convert us
 
 ## 📁 Project Structure
 
+```
 sqlproject/
 ├── src/
-│ ├── main/
-│ │ ├── java/com/llm/sqlproject/
-│ │ │ ├── controller/ # REST APIs
-│ │ │ ├── service/ # Business logic + OpenAI integration
-│ │ │ ├── model/ # JPA entities
-│ │ │ ├── repository/ # Data access layer
-│ │ │ └── SqlProjectApp.java
-│ ├── resources/
-│ │ └── application.properties
+│   ├── main/
+│   │   ├── java/com/llm/sqlproject/
+│   │   │   ├── controller/       # API endpoints
+│   │   │   ├── service/          # Core business logic
+│   │   │   ├── model/            # Entity and schema representations
+│   │   │   ├── repository/       # DB access
+│   │   │   └── SqlProjectApp.java # Spring Boot main app
+│   ├── resources/
+│   │   ├── application.properties # DB & API configuration
+│   │   └── schema.sql             # (Optional) Sample DB schema
 ├── pom.xml
 └── README.md
-
-yaml
-Copy
-Edit
+```
 
 ---
 
 ## ⚙️ How It Works
 
-1. User sends a question like:
-What are the top 5 customers by order count?
-
-yaml
-Copy
-Edit
-2. App extracts the DB schema (tables & columns).
-3. App sends a formatted prompt to OpenAI using your API key.
-4. GPT returns a valid SQL query.
-5. (Optional) You can execute it using JPA or JDBC.
+1. User inputs a natural language question
+2. Backend extracts table + column names using JDBC
+3. App constructs a prompt with schema + user input
+4. OpenAI returns a SQL query
+5. SQL is returned as a response (can be executed in future)
 
 ---
 
@@ -71,79 +67,151 @@ Edit
 ```bash
 git clone https://github.com/your-username/sqlproject.git
 cd sqlproject
-2. Configure MySQL
-Create your database (example: orders_db) and set up relevant tables and data.
+```
 
-sql
-Copy
-Edit
+### 2. Set Up MySQL Database
+
+Make sure MySQL is running, and create a database:
+
+```sql
 CREATE DATABASE orders_db;
-3. Add OpenAI API Key
-In src/main/resources/application.properties, update:
+```
 
-properties
-Copy
-Edit
+Populate it with some sample tables and data. Example:
+
+```sql
+CREATE TABLE customers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    created_at DATE
+);
+
+CREATE TABLE orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    amount DECIMAL(10, 2),
+    order_date DATE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+```
+
+### 3. Add OpenAI API Key
+
+In `src/main/resources/application.properties`, add:
+
+```properties
+# Database
 spring.datasource.url=jdbc:mysql://localhost:3306/orders_db
 spring.datasource.username=root
 spring.datasource.password=yourpassword
 spring.jpa.hibernate.ddl-auto=none
 
-openai.api.key=your_openai_key
+# OpenAI
+openai.api.key=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 openai.model=gpt-3.5-turbo
-Replace your_openai_key with your actual key from https://platform.openai.com.
+```
 
-▶️ Run the Application
-bash
-Copy
-Edit
+Replace `yourpassword` and `sk-...` with your actual DB password and OpenAI API key.
+
+---
+
+## ▶️ Run the Application
+
+```bash
 mvn clean install
 mvn spring-boot:run
-📡 API Endpoint
-POST /api/nl-to-sql
-Request:
-json
-Copy
-Edit
+```
+
+Once started, the backend will be available at:
+
+```
+http://localhost:8080
+```
+
+---
+
+## 📡 API Endpoint
+
+### `POST /api/nl-to-sql`
+
+#### Request:
+
+```json
 {
-  "question": "List all customers who ordered in the last 7 days"
+  "question": "Show me the top 5 customers by order amount"
 }
-Response:
-json
-Copy
-Edit
+```
+
+#### Response:
+
+```json
 {
-  "sql": "SELECT * FROM customers WHERE order_date >= CURDATE() - INTERVAL 7 DAY;"
+  "sql": "SELECT c.name, SUM(o.amount) AS total FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id ORDER BY total DESC LIMIT 5;"
 }
-🔐 Get Your OpenAI API Key
-Go to: https://platform.openai.com/account/api-keys
+```
 
-Login or sign up
+---
 
-Generate a new API key
+## 📄 Sample Prompt Sent to OpenAI
 
-Paste it in your application.properties
+```
+Given this schema:
+TABLE customers(id, name, email, created_at)
+TABLE orders(id, customer_id, amount, order_date)
 
-🧪 Future Enhancements
-Query execution + result output
+Convert this question into SQL:
+"Show me the top 5 customers by order amount"
+```
 
-Frontend UI (Angular/React) for inputs and results
+---
 
-Auto-suggestion of queries based on schema
+## 💡 Use Cases
 
-Export query result as CSV
+- Text-to-SQL assistants
+- Data exploration tools
+- Internal dashboards
+- Chatbots for querying databases
 
-👨‍💻 Author
-Built with 💡 by @yourusername
-Reach out on LinkedIn or raise an issue in this repo!
+---
 
-📄 License
-This project is licensed under the MIT License.
+## 📌 To-Do / Future Work
 
-vbnet
-Copy
-Edit
+- [ ] Add SQL execution & result preview
+- [ ] Add a React/Angular UI frontend
+- [ ] Add query history & logging
+- [ ] Support other databases like PostgreSQL or SQLite
+- [ ] Query validation / explanation
 
-Let me know if:
-- You’d like the query results to be included in the response.
-- You want badges, Docker support, or deployment steps added.
+---
+
+## 🔐 How to Get OpenAI API Key
+
+1. Go to: https://platform.openai.com/account/api-keys
+2. Login with your OpenAI account
+3. Generate a new API key
+4. Copy and paste into `application.properties`
+
+---
+
+## 🧪 Testing
+
+Run all tests:
+
+```bash
+mvn test
+```
+
+You can also write controller tests to validate prompt formation and response parsing.
+
+---
+
+## 🙋‍♂️ Author
+
+Developed by [@yourusername](https://github.com/yourusername)
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
